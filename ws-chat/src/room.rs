@@ -1,5 +1,5 @@
 use futures_channel::mpsc::{unbounded, UnboundedSender};
-use futures_util::{future, pin_mut, stream::TryStreamExt, StreamExt};
+use futures_util::{future, stream::TryStreamExt, StreamExt};
 use std::collections::HashMap;
 use std::io;
 use std::net::SocketAddr;
@@ -43,7 +43,7 @@ impl Room {
                 .instrument(info_span!("accept"))
                 .await?;
             info!(%addr, "New user from {addr} incoming");
-            let mut peers = self.peer_map.clone();
+            let peers = self.peer_map.clone();
             tokio::spawn(handle_user(peers, stream, addr));
         }
     }
@@ -51,7 +51,7 @@ impl Room {
 
 #[tracing::instrument(skip(stream, peer_map))]
 async fn handle_user(
-    mut peer_map: Arc<Mutex<HashMap<SocketAddr, UnboundedSender<Message>>>>,
+    peer_map: Arc<Mutex<HashMap<SocketAddr, UnboundedSender<Message>>>>,
     stream: TcpStream,
     addr: SocketAddr,
 ) {
@@ -60,13 +60,13 @@ async fn handle_user(
         .await
         .expect("failed to accept stream");
 
-    let (mut tx, rx) = unbounded();
+    let (tx, rx) = unbounded();
     peer_map
         .lock()
         .expect("failed to obtain peer map mutex!")
         .insert(addr, tx);
 
-    let (mut outgoing, mut incoming) = ws_stream.split();
+    let (outgoing, incoming) = ws_stream.split();
     let message_incoming = incoming
         .try_for_each(|msg| {
             match msg {
