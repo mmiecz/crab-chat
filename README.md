@@ -1,1 +1,1 @@
-Simple microservice based chat application.
+Simple websocket chat application.
